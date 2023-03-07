@@ -1,0 +1,33 @@
+# used on maze level of Reeborg's World
+
+# a right turn is equivalent to 3 left turns
+def turn_right():
+    turn_left()
+    turn_left()
+    turn_left()
+   
+# can always escape from a maze by following the right
+# wall
+
+# makes sure Reeborg doesn't start in area where there
+# is no wall in front and on right, can cause infinite
+# loops
+while front_is_clear():
+    move()
+turn_left()
+
+# continue loop until Reeborg reaches the goal
+while not at_goal():
+    # if no obstacle on right, make a right turn and
+    # move forward
+    if right_is_clear():
+        turn_right()
+        move()
+    # if obstacle on right but front is clear, move
+    # forward
+    elif front_is_clear():
+        move()
+    # if obstacles on right and front, turn left
+    else:
+        turn_left()
+    
