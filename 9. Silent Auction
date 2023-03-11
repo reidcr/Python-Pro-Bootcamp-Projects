@@ -1,0 +1,43 @@
+from replit import clear
+from art import logo
+
+print(logo)
+print("Welcome to the silent auction!")
+more_people = True          # used to check for more bidders
+bidders = {}                # dictionary for storing bid information
+highest_bid = 0             # keep track of highest bid
+
+# loop continues until there are no more people to bid
+while more_people:
+  bidder_name = input("What is your name?\n")
+  bidder_price = input("What is your bid?\n$")
+  # add each bid to dictionary
+  bidders[bidder_name] = int(bidder_price)
+  last_person = input("Are there any more bidders? Type 'yes' or 'no'\n")
+  if last_person == "no":
+    more_people = False      # loop will now conclude
+  clear()                    # clear the screen
+
+# go through bidding dictionary and look for highest bid
+for person in bidders:
+  if bidders[person] > highest_bid:
+    winner = person
+    highest_bid = bidders[person]
+
+print(f"The winner is {winner} with a bid of ${highest_bid}.")
+
+# art.py
+
+logo = '''
+                         ___________
+                         \         /
+                          )_______(
+                          |"""""""|_.-._,.---------.,_.-._
+                          |       | | |               | | ''-.
+                          |       |_| |_             _| |_..-'
+                          |_______| '-' `'---------'` '-'
+                          )"""""""(
+                         /_________\\
+                       .-------------.
+                      /_______________\\
+'''
