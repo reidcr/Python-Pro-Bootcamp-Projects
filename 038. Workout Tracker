@@ -1,0 +1,62 @@
+import requests
+import os
+from requests.auth import HTTPBasicAuth
+from datetime import datetime
+
+APP_ID = os.environ['APP_ID']
+API_KEY = os.environ['API_KEY']
+
+GENDER = "male"
+WEIGHT = 99.79
+HEIGHT = 182.88
+AGE = 38
+
+headers = {
+    "x-app-id": APP_ID,
+    "x-app-key": API_KEY,
+    "Content-Type": "application/json",
+}
+
+# get duration and calorie data for exercises input by user
+exercise_endpoint = "https://trackapi.nutritionix.com/v2/natural/exercise"
+exercises = input("Tell me what exercises you did today. ")
+exercise_params = {
+    "query": exercises,
+    "gender": GENDER,
+    "weight_kg": WEIGHT,
+    "height_cm": HEIGHT,
+    "age": AGE,
+}
+
+# get json dictionary for exercises
+exercise_response = requests.post(url=exercise_endpoint, json=exercise_params, headers=headers)
+exercise_response.raise_for_status()
+exercise_result = exercise_response.json()
+num_exercises = len(exercise_result['exercises'])
+
+# enter authentication information for Google sheet
+username = input("What is the username? ")
+password = input("What is the password? ")
+basic = HTTPBasicAuth(username, password)
+sheety_endpoint = os.environ['SHEETY_ENDPOINT']
+
+# get date and time strings to add to sheet
+time = datetime.now()
+current_date = f"{time.strftime('%Y')}/{time.strftime('%m')}/{time.strftime('%d')}"
+current_time = f"{time.strftime('%H')}:{time.strftime('%M')}:{time.strftime('%S')}"
+
+# add all exercises to sheet, one row for each exercise
+for index in range(num_exercises):
+    workout_data = {
+        "workout": {
+            "date": current_date,
+            "time": current_time,
+            "exercise": exercise_result["exercises"][index]["name"].title(),
+            "duration": exercise_result["exercises"][index]["duration_min"],
+            "calories": exercise_result["exercises"][index]["nf_calories"],
+        }
+    }
+    response = requests.post(url=sheety_endpoint, json=workout_data, auth=basic)
+    response.raise_for_status()
+    result = response.json()
+    print(result)
