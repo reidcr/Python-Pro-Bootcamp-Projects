@@ -1,0 +1,29 @@
+import pandas
+import datetime as dt
+import random
+import smtplib
+
+MY_EMAIL = "reidcr1984@gmail.com"
+MY_PASSWORD = "covhztrbvfrdojfd"
+MY_SMTP = "smtp.gmail.com"
+PORT = 587
+NUM_LETTERS = 3
+
+# get today's month and day
+today = (dt.datetime.now().month, dt.datetime.now().day)
+
+# create dictionary with all birthdays
+bday_data = pandas.read_csv("birthdays.csv")
+bday_dict = {(row["month"], row["day"]): row for (index, row) in bday_data.iterrows()}
+
+# checks if someone has a birthday today, if so sends a random letter
+if today in bday_dict:
+    with open(f"letter_templates/letter_{random.randint(1, NUM_LETTERS)}.txt") as letter_file:
+        letter = letter_file.read()
+        new_letter = letter.replace("[NAME]", bday_dict[today]["name"])
+    with smtplib.SMTP(MY_SMTP, port=PORT) as connection:
+        connection.starttls()
+        connection.login(user=MY_EMAIL, password=MY_PASSWORD)
+        connection.sendmail(from_addr=MY_EMAIL,
+                            to_addrs=bday_dict[today]["email"],
+                            msg=f"Subject:Happy Birthday!\n\n{new_letter}")
