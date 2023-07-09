@@ -1,0 +1,125 @@
+# main.py
+
+############### Our Blackjack House Rules #####################
+
+## The deck is unlimited in size. 
+## There are no jokers. 
+## The Jack/Queen/King all count as 10.
+## The the Ace can count as 11 or 1.
+## Use the following list as the deck of cards:
+## cards = [11, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10]
+## The cards in the list have equal probability of being drawn.
+## Cards are not removed from the deck as they are drawn.
+## The computer is the dealer.
+
+import random
+from art import logo
+from replit import clear
+
+def print_cards(user_cards, computer_cards):
+  """Prints and sums user and computer hands."""
+  print(f"\nYour cards: {user_cards}")
+  print(f"Total value of your hand: {sum(user_cards)}\n")
+  print(f"Computer cards: {computer_cards}")
+  print(f"Total value of computer hand: {sum(computer_cards)}\n")
+
+def deal_card():
+  """Deals a random card to either user or computer."""
+  cards = [11, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10]
+  return random.choice(cards)
+
+def calculate_score(cards):
+  """Returns the total of a blackjack hand."""
+  if sum(cards) == 21 and len(cards) == 2:
+    return 0
+  elif sum(cards) > 21 and 11 in cards:
+    cards.remove(11)
+    cards.append(1)
+    #return sum(cards)
+  return sum(cards)
+
+def play_blackjack():
+  """Plays a game of blackjack."""
+  print(logo)
+  user_done = False        # determines when user stops drawing cards
+  # user/computer hands start with two cards
+  user_cards = []
+  computer_cards = []
+  
+  for _ in range(2):
+    user_cards.append(deal_card())
+    computer_cards.append(deal_card())
+
+  computer_score = calculate_score(computer_cards)
+  user_score = calculate_score(user_cards)
+
+  # determines whether user or computer has blackjack
+  if computer_score == 0:
+    print_cards(user_cards, computer_cards)
+    print("Computer gets blackjack. You lose!")
+  elif user_score == 0:
+    print_cards()
+    print("You get blackjack. You win!")
+
+  # blackjack game continues assuming no one already has blackjack
+  #if user_score != 0 and computer_score != 0:
+  else:
+    # loop continues until user done with hand
+    while not user_done:
+      print(f"\nYour cards: {user_cards}")
+      print(f"Computer cards: [X, {computer_cards[1]}]")
+
+      # computer starts dealing once user is done
+      if input("Do you want another card? 'y' for Yes or 'n' for No.: ") == 'n':
+        user_done = True
+        # computer must deal until hand is 17 or greater
+        while computer_score < 17:
+          computer_cards.append(deal_card())
+          computer_score = calculate_score(computer_cards)
+
+        # determines ending hands, scores, and game outcome
+        print("\nEnding hands:\n")
+        print_cards(user_cards, computer_cards)
+        if user_score <= 21 and computer_score > 21:
+          print("You win!")
+        elif user_score > computer_score:
+          print("You win!")
+        elif user_score == computer_score:
+          print("You draw.")
+        else:
+          print("You lose!")
+      # user still wants to deal so continue
+      else:
+        user_cards.append(deal_card())
+        user_score = calculate_score(user_cards)
+        if user_score > 21:
+          print(f"\nYour cards: {user_cards}")
+          print("You went over 21. You lose!")
+          user_done = True
+  play_again = input("Do you want to play again? 'y' for yes or 'n' for no. ")
+
+  # game continues if user desires
+  if play_again == 'y':
+    clear()
+    play_blackjack()
+
+# main function call to start playing blackjack
+play_blackjack()
+
+
+# art.py
+
+logo = """
+.------.            _     _            _    _            _    
+|A_  _ |.          | |   | |          | |  (_)          | |   
+|( \/ ).-----.     | |__ | | __ _  ___| | ___  __ _  ___| | __
+| \  /|K /\  |     | '_ \| |/ _` |/ __| |/ / |/ _` |/ __| |/ /
+|  \/ | /  \ |     | |_) | | (_| | (__|   <| | (_| | (__|   < 
+`-----| \  / |     |_.__/|_|\__,_|\___|_|\_\ |\__,_|\___|_|\_\\
+      |  \/ K|                            _/ |                
+      `------'                           |__/           
+"""
+                   
+
+                                      
+     
