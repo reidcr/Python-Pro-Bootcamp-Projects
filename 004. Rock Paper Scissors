@@ -1,0 +1,67 @@
+import random
+
+rock = '''
+    _______
+---'   ____)
+      (_____)
+      (_____)
+      (____)
+---.__(___)
+'''
+
+paper = '''
+    _______
+---'   ____)____
+          ______)
+          _______)
+         _______)
+---.__________)
+'''
+
+scissors = '''
+    _______
+---'   ____)____
+          ______)
+       __________)
+      (____)
+---.__(___)
+'''
+
+#Write your code below this line 👇
+
+# create map of all possible outcomes
+outcome = [["draw", "lose", "win"], ["win", "draw", "lose"], ["lose", "win", "draw"]]
+# get player and computer choices
+player = int(input("What do you choose? Type 0 for rock, 1 for paper, or 2 for scissors.\n"))
+computer = random.randint(0, 2)
+
+print("\n")        # done for formatting purposes
+
+# display player choice
+if player == 0:
+  print(f"You choose rock.\n{rock}")
+elif player == 1:
+  print(f"You choose paper.\n{paper}")
+elif player == 2:
+  print(f"You choose scissors.\n{scissors}")
+else:
+  print("Invalid choice. Computer beats you!")
+
+# display computer choice
+if computer == 0:
+  print(f"Computer chooses rock.\n{rock}")
+elif computer == 1:
+  print(f"Computer chooses paper.\n{paper}")
+else:
+  print(f"Computer chooses scissors.\n{scissors}")
+
+# look up outcome of game
+if player > 2 or player < 0:
+  print("Computer wins no matter what.")
+else:
+  if outcome[player][computer] == "win":
+    print("You win!")
+  elif outcome[player][computer] == "draw":
+    print("It's a draw.")
+  else:
+    print("You lose!")
