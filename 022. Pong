@@ -1,0 +1,167 @@
+# main.py
+
+from turtle import Screen
+from paddle import Paddle
+from ball import Ball
+from scoreboard import Scoreboard
+import time
+YCOR_UPPER_LIMIT = 280
+YCOR_LOWER_LIMIT = -280
+XCOR_UPPER_LIMIT = 380
+XCOR_LOWER_LIMIT = -380
+XCOR_RIGHT_PADDLE = 320
+XCOR_LEFT_PADDLE = -320
+R_PADDLE_COR = (350, 0)
+L_PADDLE_COR = (-350, 0)
+BALL_MAX_DISTANCE = 70
+
+# set up the screen for the pong game
+screen = Screen()
+screen.setup(width=800, height=600)
+screen.bgcolor('black')
+screen.title('Pong')
+screen.tracer(0)
+
+# set up paddles on screen
+r_paddle = Paddle(R_PADDLE_COR)
+l_paddle = Paddle(L_PADDLE_COR)
+
+# set up ball on screen
+ball = Ball()
+
+# set up scoreboard on screen
+scoreboard = Scoreboard()
+
+screen.listen()
+screen.onkey(r_paddle.move_up, "Up")
+screen.onkey(r_paddle.move_down, "Down")
+screen.onkey(l_paddle.move_up, "w")
+screen.onkey(l_paddle.move_down, "s")
+
+game_is_on = True
+
+while game_is_on:
+    screen.update()
+    ball.move()
+    time.sleep(ball.move_speed)
+
+    # detect collision with walls
+    if ball.ycor() > YCOR_UPPER_LIMIT or ball.ycor() < YCOR_LOWER_LIMIT:
+        ball.bounce_y()
+
+    # detect collision with paddles
+    if ball.distance(r_paddle) < BALL_MAX_DISTANCE and ball.xcor() > XCOR_RIGHT_PADDLE \
+            or ball.distance(l_paddle) < BALL_MAX_DISTANCE and ball.xcor() < XCOR_LEFT_PADDLE:
+        ball.bounce_x()
+
+    # detect right paddle miss
+    if ball.xcor() > XCOR_UPPER_LIMIT:
+        ball.reset_position()
+        scoreboard.l_point()
+
+    # detect left paddle miss
+    if ball.xcor() < XCOR_LOWER_LIMIT:
+        ball.reset_position()
+        scoreboard.r_point()
+
+screen.exitonclick()
+
+# scoreboard.py
+
+from turtle import Turtle
+LEFT_COORD = (-100, 200)
+RIGHT_COORD = (100, 200)
+
+
+class Scoreboard(Turtle):
+    def __init__(self):
+        super().__init__()
+        self.color('white')
+        self.penup()
+        self.hideturtle()
+        self.l_score = 0
+        self.r_score = 0
+        self.update_scoreboard()
+
+    def update_scoreboard(self):
+        """updates scoreboard"""
+        self.clear()
+        self.goto(LEFT_COORD)
+        self.write(self.l_score, align="center", font=("Courier", 60, "normal"))
+        self.goto(RIGHT_COORD)
+        self.write(self.r_score, align="center", font=("Courier", 60, "normal"))
+
+    def l_point(self):
+        """updates score for left player"""
+        self.l_score += 1
+        self.update_scoreboard()
+
+    def r_point(self):
+        """updates score for right player"""
+        self.r_score += 1
+        self.update_scoreboard()
+
+# ball.py
+
+from turtle import Turtle
+INIT_X_MOVE = 10
+INIT_Y_MOVE = 10
+INIT_DELAY = 0.08
+DELAY_FACTOR = 1.1
+
+
+class Ball(Turtle):
+    def __init__(self):
+        super().__init__()
+        self.shape('circle')
+        self.color('white')
+        self.penup()
+        self.x_move = INIT_X_MOVE
+        self.y_move = INIT_Y_MOVE
+        self.move_speed = INIT_DELAY
+
+    def move(self):
+        """moves the ball on the screen"""
+        new_x = self.xcor() + self.x_move
+        new_y = self.ycor() + self.y_move
+        self.goto(new_x, new_y)
+
+    def bounce_y(self):
+        """bounces the ball in y direction"""
+        self.y_move *= -1
+
+    def bounce_x(self):
+        """bounces the ball in x direction"""
+        self.x_move *= -1
+        self.move_speed /= DELAY_FACTOR
+
+    def reset_position(self):
+        """resets the position of the ball"""
+        self.goto(0, 0)
+        self.bounce_x()
+        self.move_speed = INIT_DELAY
+
+# paddle.py
+
+from turtle import Turtle
+Y_CHANGE = 20
+
+
+class Paddle(Turtle):
+    def __init__(self, position):
+        super().__init__()
+        self.shape('square')
+        self.color('white')
+        self.shapesize(stretch_wid=5, stretch_len=1)
+        self.penup()
+        self.goto(position)
+
+    def move_up(self):
+        """moves paddle up"""
+        new_y = self.ycor() + Y_CHANGE
+        self.goto(self.xcor(), new_y)
+
+    def move_down(self):
+        """moves paddle down"""
+        new_y = self.ycor() - Y_CHANGE
+        self.goto(self.xcor(), new_y)
