@@ -1,0 +1,147 @@
+# main.py
+
+from question_model import Question
+from data import question_data
+from quiz_brain import QuizBrain
+from ui import QuizInterface
+
+question_bank = []
+for question in question_data:
+    question_text = question["question"]
+    question_answer = question["correct_answer"]
+    new_question = Question(question_text, question_answer)
+    question_bank.append(new_question)
+
+
+quiz = QuizBrain(question_bank)
+quiz_ui = QuizInterface(quiz)
+
+# data.py
+
+import requests
+
+parameters = {
+    "amount": 10,
+    "type": "boolean",
+}
+
+quiz_response = requests.get(url="https://opentdb.com/api.php", params=parameters)
+quiz_response.raise_for_status()
+question_data = quiz_response.json()["results"]
+
+# quiz_brain.py
+
+import html
+
+
+class QuizBrain:
+    def __init__(self, q_list):
+        self.question_number = 0
+        self.score = 0
+        self.question_list = q_list
+        self.current_question = None
+
+    def still_has_questions(self):
+        """checks whether questions are left"""
+        return self.question_number < len(self.question_list)
+
+    def next_question(self):
+        """gets next quiz question"""
+        self.current_question = self.question_list[self.question_number]
+        self.question_number += 1
+        q_text = html.unescape(self.current_question.text)
+        return f"Q.{self.question_number}: {q_text} (True/False): "
+
+    def check_answer(self, user_answer):
+        """checks whether answer is correct"""
+        correct_answer = self.current_question.answer
+        if user_answer.lower() == correct_answer.lower():
+            self.score += 1
+            return True
+        else:
+            return False
+
+# question_model.py
+
+class Question:
+
+    def __init__(self, q_text, q_answer):
+        self.text = q_text
+        self.answer = q_answer
+
+# ui.py
+
+from tkinter import *
+from quiz_brain import QuizBrain
+
+THEME_COLOR = "#375362"
+FONT = ("Arial", 15, "italic")
+
+
+class QuizInterface:
+    def __init__(self, quiz_brain: QuizBrain):
+        self.quiz = quiz_brain
+        self.window = Tk()
+        self.window.title("Quizzler")
+        self.window.config(padx=20, pady=20, bg=THEME_COLOR)
+
+        self.score_label = Label(text=f"Score: {quiz_brain.score}", fg="White", bg=THEME_COLOR)
+        self.score_label.grid(column=1, row=0)
+
+        self.canvas = Canvas(width=300, height=250)
+        self.question_text = self.canvas.create_text(
+            150,
+            125,
+            width=280,
+            font=FONT)
+        self.canvas.itemconfig(self.question_text, text="Test")
+        self.canvas.grid(column=0, row=1, columnspan=2, pady=50)
+
+        true_image = PhotoImage(file="images/true.png")
+        self.true_button = Button(image=true_image,
+                                  highlightthickness=0,
+                                  command=self.check_true_answer)
+        self.true_button.grid(row=2, column=0)
+
+        false_image = PhotoImage(file="images/false.png")
+        self.false_button = Button(image=false_image,
+                                   highlightthickness=0,
+                                   command=self.check_false_answer)
+        self.false_button.grid(row=2, column=1)
+
+        self.get_next_question()
+
+        self.window.mainloop()
+
+    def get_next_question(self):
+        """updates screen with next question"""
+        self.canvas.config(bg="white")
+        self.score_label.config(text=f"Score: {self.quiz.score}")
+        if self.quiz.still_has_questions():
+            q_text = self.quiz.next_question()
+            self.canvas.itemconfig(self.question_text, text=q_text)
+        else:
+
+            self.canvas.itemconfig(self.question_text,
+                                   text=f"You've reached the end of the quiz.\n"
+                                        f"Your final score is {self.quiz.score}.")
+            self.true_button.config(state="disabled")
+            self.false_button.config(state="disabled")
+
+    def check_true_answer(self):
+        """checks whether answer is true"""
+        is_right = self.quiz.check_answer("True")
+        self.give_feedback(is_right)
+
+    def check_false_answer(self):
+        """checks whether answer is false"""
+        is_right = self.quiz.check_answer("False")
+        self.give_feedback(is_right)
+
+    def give_feedback(self, is_right):
+        """gives visible feedback to user"""
+        if is_right:
+            self.canvas.config(bg="green")
+        else:
+            self.canvas.config(bg="red")
+        self.window.after(1000, self.get_next_question)
