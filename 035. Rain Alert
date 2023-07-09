@@ -1,0 +1,44 @@
+import requests
+import os
+from twilio.rest import Client
+
+OWM_Endpoint = "https://api.openweathermap.org/data/3.0/onecall"
+PI_KEY = os.environ['PI_KEY']
+EXCL = "current,minutely,daily,alerts"
+LAT = 39.863510
+LONG = -105.041122
+TWILIO_ACCOUNT_SID = os.environ['TWILIO_ACCOUNT_SID']
+TWILIO_AUTH_TOKEN = os.environ['TWILIO_AUTH_TOKEN']
+
+weather_params = {
+    "lat": LAT,
+    "lon": LONG,
+    "exclude": EXCL,
+    "appid": PI_KEY,
+}
+
+id_list = []
+will_rain = False
+
+response = requests.get(OWM_Endpoint, params=weather_params)
+weather_data = response.json()
+for hour_data in weather_data["hourly"][:12]:
+    id_list.append(hour_data["weather"][0]["id"])
+
+for condition in id_list:
+    if int(condition) < 700:
+        will_rain = True
+
+if not will_rain:
+    account_sid = TWILIO_ACCOUNT_SID
+    auth_token = TWILIO_AUTH_TOKEN
+    client = Client(account_sid, auth_token)
+
+    message = client.messages \
+        .create(
+            body="It will be sunny today.",
+            from_=os.environ['FROM'],
+            to=os.environ['TO'],
+        )
+
+    print(message.status)
