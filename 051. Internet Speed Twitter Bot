@@ -1,0 +1,82 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+import os
+import time
+
+PROMISED_DOWN = 250
+PROMISED_UP = 20
+TWITTER_LOGIN = os.environ['TWITTER_LOGIN']
+TWITTER_PASSWORD = os.environ['TWITTER_PASSWORD']
+CHROME_DRIVER_PATH = "C:\Development"
+SPEEDTEST_DELAY = 60
+LOAD_DELAY = 5
+TWEET_DELAY = 10
+
+
+class InternetSpeedTwitterBot:
+    def __init__(self, driver_path):
+        """Sets up variables for Twitter Bot"""
+        self.down = 0
+        self.up = 0
+        self.SER = Service(driver_path)
+        self.driver = webdriver.Chrome(service=self.SER)
+        self.text = ""
+
+    def get_internet_speed(self):
+        """Gets current internet speed"""
+        self.driver.get('https://www.speedtest.net/')
+        go_button = self.driver.find_element(by='xpath', value='//*[@id="container"]/div/div[3]/div/div/div/div['
+                                                               '2]/div[3]/div[1]/a/span[4]')
+        go_button.click()
+        time.sleep(SPEEDTEST_DELAY)
+        annoying_popup = self.driver.find_element(by='xpath', value='//*[@id="container"]/div/div[3]/div/div/div/div['
+                                                                    '2]/div[3]/div[3]/div/div[8]/div/div/div[2]/a')
+        annoying_popup.click()
+        self.down = self.driver.find_element(by='xpath', value='//*[@id="container"]/div/div[3]/div/div/div/div['
+                                                               '2]/div[3]/div[3]/div/div[3]/div/div/div[2]/div['
+                                                               '1]/div[1]/div/div[2]/span').text
+        self.up = self.driver.find_element(by='xpath', value='//*[@id="container"]/div/div[3]/div/div/div/div[2]/div['
+                                                             '3]/div[3]/div/div[3]/div/div/div[2]/div[1]/div['
+                                                             '2]/div/div[2]/span').text
+        speed = (self.down, self.up)
+        return speed
+
+    def tweet_at_provider(self, speed):
+        """Tweets internet speed at provider"""
+        self.text = f"Internet provider, why is my download speed {speed[0]} instead of {PROMISED_DOWN} and my upload" \
+                    f" speed {speed[1]} instead of {PROMISED_UP}?"
+        self.driver.get("https://twitter.com/")
+        login_button = self.driver.find_element(by='xpath', value='//*[@id="layers"]/div/div[1]/div/div/div/div/div['
+                                                                  '2]/div/div/div[1]/a')
+        login_button.click()
+        time.sleep(LOAD_DELAY)
+        username_box = self.driver.find_element(by='xpath', value='//*[@id="layers"]/div[2]/div/div/div/div/div/div['
+                                                                  '2]/div[2]/div/div/div[2]/div[2]/div/div/div/div['
+                                                                  '5]/label/div/div[2]/div/input')
+        username_box.send_keys(TWITTER_LOGIN)
+        next_button = self.driver.find_element(by='xpath', value='//*[@id="layers"]/div[2]/div/div/div/div/div/div['
+                                                                 '2]/div[2]/div/div/div[2]/div[2]/div/div/div/div[6]')
+        next_button.click()
+        time.sleep(LOAD_DELAY)
+        password_box = self.driver.find_element(by='xpath', value='//*[@id="layers"]/div[2]/div/div/div/div/div/div['
+                                                                  '2]/div[2]/div/div/div[2]/div[2]/div['
+                                                                  '1]/div/div/div[2]/div/label/div/div[2]/div[1]/input')
+        password_box.send_keys(TWITTER_PASSWORD)
+        login_button = self.driver.find_element(by='xpath', value='//*[@id="layers"]/div[2]/div/div/div/div/div/div['
+                                                                  '2]/div[2]/div/div/div[2]/div[2]/div[2]/div/div['
+                                                                  '1]/div/div/div/div/span/span')
+        login_button.click()
+        time.sleep(TWEET_DELAY)
+        tweet_box = self.driver.find_element(by='class name', value='public-DraftStyleDefault-block')
+        tweet_box.send_keys(self.text)
+        tweet_button = self.driver.find_element(by='xpath', value='//*[@id="react-root"]/div/div/div['
+                                                                  '2]/main/div/div/div/div/div/div[3]/div/div[2]/div['
+                                                                  '1]/div/div/div/div[2]/div[3]/div/div/div[2]/div['
+                                                                  '3]/div/span/span')
+        tweet_button.click()
+
+
+twitter_bot = InternetSpeedTwitterBot(CHROME_DRIVER_PATH)
+internet_speed = twitter_bot.get_internet_speed()
+time.sleep(LOAD_DELAY)
+twitter_bot.tweet_at_provider(internet_speed)
