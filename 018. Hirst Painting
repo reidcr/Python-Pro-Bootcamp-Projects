@@ -1,0 +1,45 @@
+# need to install colorgram first before importing it
+# import colorgram
+
+# used to view image if PyCharm won't load it
+# from PIL import Image
+# image = Image.open('image.jpg')
+# image.show()
+
+# only needed once to extract colors from image
+# rgb_colors = []
+# colors = colorgram.extract('image.jpg', 10)
+# for color in colors:
+#     r = color.rgb.r
+#     g = color.rgb.g
+#     b = color.rgb.b
+#     new_color = (r, g, b)
+#     rgb_colors.append(new_color)
+
+from turtle import Turtle, Screen
+from random import choice
+
+# set turtle's starting attributes
+tim = Turtle()
+tim.speed(0)
+tim.penup()
+tim.hideturtle()
+screen = Screen()
+screen.colormode(255)
+
+# colors imported using above colorgram code and white shades have been removed from color list
+rgb_colors = [(239, 221, 113), (18, 111, 193), (223, 60, 95), (235, 150, 76), (116, 147, 208), (143, 88, 50)]
+
+# sets starting position
+tim.goto(-200, 200)
+
+# outer loop denotes row, inner loop denotes column
+for x in range(1, 11):
+    for _ in range(1, 11):
+        # draw a new row
+        tim.dot(20, choice(rgb_colors))
+        tim.forward(50)
+    # move to a new row for next loop iteration
+    tim.goto(-200, 200 - (x * 50))
+
+screen.exitonclick()
