@@ -1,0 +1,54 @@
+# index.html
+
+<!DOCTYPE hmtl>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Motivational Quote</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div id="first">
+    <img class="motivation-img" src="./assets/images/daenerys.jpeg" src="daenerys with egg" />
+  </div>
+  <div id="second">
+    <h1>That perfect moment</h1>
+  </div>  
+  <div id="third">
+    <p>When your total at the store comes out to an even amount</p>
+  </div>
+
+</body>
+</html>
+
+# style.css
+
+body {
+    background-color: black;
+}
+
+h1 {
+    color: white;
+    font-family: 'Libre Baskerville', serif;
+    text-transform: uppercase;
+}
+
+.motivation-img {
+    border: 5px solid white;
+    width: 100%
+}
+
+div {
+    width: 50%;
+    margin-left: 25%;
+    text-align: center;
+}
+
+p {
+    color: white;
+}
