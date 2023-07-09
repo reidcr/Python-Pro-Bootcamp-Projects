@@ -1,0 +1,40 @@
+from bs4 import BeautifulSoup
+import requests
+import smtplib
+import os
+
+URL = 'https://www.amazon.com/dp/B075CYMYK6?ref_=cm_sw_r_cp_ud_ct_FM9M699VKHTT47YD50Q6&th=1'
+price_check = 199.99
+MY_EMAIL = os.environ['MY_EMAIL']
+MY_PASSWORD = os.environ['MY_PASSWORD']
+MY_SMTP = os.environ['MY_SMTP']
+PORT = int(os.environ['PORT'])
+TO_EMAIL = os.environ['TO_EMAIL']
+
+headers = {
+    'Accept-Language': 'en-US,en;q=0.9',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 '
+                  'Safari/537.36',
+}
+
+# use Beautiful Soup to identify product name and price, and set up string to email
+response = requests.get(URL, headers=headers)
+soup = BeautifulSoup(response.text, 'html.parser')
+sale_price = soup.find(class_="a-offscreen").getText()
+price = float(sale_price.replace('$', ''))
+product = soup.select('title')[0].getText()
+product_name = product.replace('Amazon.com: ', '')
+product_name = product_name.replace(' : Everything Else', '')
+product_name = str(product_name.encode('utf-8'))
+product_name = product_name.replace("b'", "")
+product_name = product_name.replace("'", "")
+
+# check whether price is lower than desired price, if so send an email
+if price < price_check:
+    text = f"Low price alert! {product_name} available for only ${price}!"
+    with smtplib.SMTP(MY_SMTP, port=PORT) as connection:
+        connection.starttls()
+        connection.login(user=MY_EMAIL, password=MY_PASSWORD)
+        connection.sendmail(from_addr=MY_EMAIL,
+                            to_addrs=TO_EMAIL,
+                            msg=f"Subject:Low Price Found!\n\n{text}")
