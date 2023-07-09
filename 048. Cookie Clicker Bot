@@ -1,0 +1,62 @@
+# main.py
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+import time
+from cookie_functions import *
+
+TIME1_SEC = 5
+TIME2_SEC = 300
+URL = "http://orteil.dashnet.org/experiments/cookie/"
+
+# set up Selenium driver
+chrome_driver_path = "C:\Development"
+ser = Service(chrome_driver_path)
+driver = webdriver.Chrome(service=ser)
+driver.get(URL)
+
+# set up timeout and cookie elements
+timeout1 = time.time() + TIME1_SEC
+timeout2 = time.time() + TIME2_SEC
+click_cookie = driver.find_element(by="id", value="cookie")
+cps = driver.find_element(by="id", value="cps")
+
+# the game will play until the time interval given by timeout2 has passed
+while time.time() <= timeout2:
+    # an upgrade will be purchased every time interval given by timeout1
+    while time.time() <= timeout1:
+        click_cookie.click()
+    all_items = driver.find_elements(by="css selector", value="#store b")
+    list_of_prices = list_prices(all_items)
+    money = money_available(driver)
+    index = select_index(list_of_prices, money)
+    all_items[index].click()
+    timeout1 = time.time() + TIME1_SEC  # resets timer to resume clicking on cookie
+
+print(cps.text)
+
+# cookie_functions.py
+
+def list_prices(all_items):
+    """Creates a list of prices for all upgrades"""
+    all_items.pop(len(all_items) - 1)
+    prices = []
+    for item in all_items:
+        price = item.text.split(" - ")[1]
+        prices.append(price.replace(",", ""))
+    return prices
+
+
+def money_available(driver):
+    """Returns amount of money available"""
+    money = int(driver.find_element(by="id", value="money").text)
+    return money
+
+
+def select_index(list_of_prices, money):
+    """Returns index corresponding to highest affordable upgrade"""
+    index = 0
+    for index in range(len(list_of_prices)):
+        if int(list_of_prices[index]) > money:
+            return index - 1
+    return index
