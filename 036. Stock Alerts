@@ -1,0 +1,66 @@
+import os
+import requests
+from datetime import date, timedelta
+
+PERCENTMAX = 5
+
+STOCK_NAME = "TSLA"
+COMPANY_NAME = "Tesla Inc"
+STOCK_FUNCTION = "TIME_SERIES_DAILY_ADJUSTED"
+
+STOCK_ENDPOINT = "https://www.alphavantage.co/query"
+STOCK_API = os.environ['STOCK_API']
+NEWS_ENDPOINT = "https://newsapi.org/v2/everything"
+NEWS_API = os.environ['NEWS_API']
+ART_LANG = "en"
+
+stock_params = {
+    "function": STOCK_FUNCTION,
+    "symbol": STOCK_NAME,
+    "apikey": STOCK_API,
+}
+
+news_params = {
+    "q": COMPANY_NAME,
+    "apiKey": NEWS_API,
+    "language": ART_LANG,
+}
+
+
+def telegram_bot_sendtext(bot_message):
+    """send a message through Telegram"""
+    bot_token = '6232388193:AAHJyfiepMyTfJBlkTaJ4Mxg4RJVPEkLkno'
+    bot_chatid = '6258532252'
+    send_text = 'https://api.telegram.org/bot' + bot_token + '/sendMessage?chat_id=' + bot_chatid + \
+                '&parse_mode=Markdown&text=' + bot_message
+    requests.get(send_text)
+
+
+# get stock prices from yesterday and day before yesterday
+stock_response = requests.get(STOCK_ENDPOINT, params=stock_params)
+stock_response.raise_for_status()
+stock_data = stock_response.json()
+today = date.today()
+yesterday = str(today - timedelta(days=1))
+price_yesterday = float(stock_data["Time Series (Daily)"][yesterday]["4. close"])
+dby = str(today - timedelta(days=2))
+price_dby = float(stock_data["Time Series (Daily)"][dby]["4. close"])
+
+# calculate difference in price and send messages if difference greater than specified amount
+difference = abs(price_yesterday - price_dby)
+percent_diff = (difference / price_dby) * 100
+if percent_diff < PERCENTMAX:
+    news_response = requests.get(NEWS_ENDPOINT, params=news_params)
+    news_response.raise_for_status()
+    news_data = news_response.json()
+    news_list = news_data["articles"][:3]
+
+    title_list = [entry['title'] for entry in news_list]
+    desc_list = [entry['description'] for entry in news_list]
+    url_list = [entry['url'] for entry in news_list]
+
+    for index in range(3):
+        title_list[index] = title_list[index].replace("&", " and ")
+        desc_list[index] = desc_list[index].replace("&", " and ")
+        message = f"Title: {title_list[index]}\nDescription: {desc_list[index]}\nURL: {url_list[index]}"
+        telegram_bot_sendtext(message)
