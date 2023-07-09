@@ -1,0 +1,77 @@
+import requests
+from datetime import datetime
+import smtplib
+import time
+
+MY_LAT = 39.863510  # Your latitude
+MY_LONG = -105.041122  # Your longitude
+MY_POSITION = (MY_LAT, MY_LONG)
+LIMIT = 5
+SECONDS = 60
+MY_EMAIL = "reidcr1984@gmail.com"
+MY_PASSWORD = "covhztrbvfrdojfd"
+MY_SMTP = "smtp.gmail.com"
+PORT = 587
+RECIPIENT = "reidcr@gmail.com"
+
+parameters = {
+    "lat": MY_LAT,
+    "lng": MY_LONG,
+    "formatted": 0,
+}
+
+
+def utc_to_local(hour, difference):
+    """converts UTC time to local time"""
+    if difference < 0:
+        difference += 24
+    hour -= difference
+    if hour < 0:
+        return hour + 24
+    else:
+        return hour
+
+
+def is_it_dark():
+    """checks whether it is dark"""
+    sun_response = requests.get("https://api.sunrise-sunset.org/json", params=parameters)
+    sun_response.raise_for_status()
+    sun_data = sun_response.json()
+    sunup = int(sun_data["results"]["sunrise"].split("T")[1].split(":")[0])
+    sundown = int(sun_data["results"]["sunset"].split("T")[1].split(":")[0])
+    timenow = datetime.now()
+    utc_timenow = datetime.utcnow()
+    difference = utc_timenow.hour - timenow.hour
+    local_sunrise = utc_to_local(sunup, difference)
+    local_sunset = utc_to_local(sundown, difference)
+    if local_sunrise < timenow.hour < local_sunset:
+        return False
+    else:
+        return True
+
+
+def is_iss_close():
+    """checks whether ISS is close by"""
+    iss_response = requests.get(url="http://api.open-notify.org/iss-now.json")
+    iss_response.raise_for_status()
+    iss_data = iss_response.json()
+    iss_latitude = float(iss_data["iss_position"]["latitude"])
+    iss_longitude = float(iss_data["iss_position"]["longitude"])
+    lat_difference = MY_POSITION[0] - iss_latitude
+    long_difference = MY_POSITION[1] - iss_longitude
+    if abs(lat_difference) <= LIMIT and abs(long_difference) <= LIMIT:
+        return True
+    else:
+        return False
+
+
+while True:
+    # checks for ISS every minute
+    time.sleep(SECONDS)
+    if is_it_dark() and is_iss_close():
+        with smtplib.SMTP(MY_SMTP, port=PORT) as connection:
+            connection.starttls()
+            connection.login(user=MY_EMAIL, password=MY_PASSWORD)
+            connection.sendmail(from_addr=MY_EMAIL,
+                                to_addrs=RECIPIENT,
+                                msg=f"Subject:Look up!\n\nThe ISS is flying overhead! Go look!")
