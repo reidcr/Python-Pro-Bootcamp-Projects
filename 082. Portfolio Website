@@ -1,0 +1,414 @@
+from flask import Flask, render_template, redirect, url_for, request
+from flask_bootstrap import Bootstrap
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, URL
+from flask_sqlalchemy import SQLAlchemy
+from flask_ckeditor import CKEditor, CKEditorField
+
+
+app = Flask(__name__)
+app.secret_key = "some secret string"
+app.config['CKEDITOR_PKG_TYPE'] = 'standard'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///projects.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['CKEDITOR_PKG_TYPE'] = 'standard'
+ckeditor = CKEditor(app)
+db = SQLAlchemy()
+db.init_app(app)
+Bootstrap(app)
+
+
+class ProjectForm(FlaskForm):
+    title = StringField('Project Title', validators=[DataRequired()], render_kw={'style': 'width: 50ch'})
+    category = StringField('Project Category', validators=[DataRequired()], render_kw={'style': 'width: 50ch'})
+    tag_name = StringField('Project Tag Name', validators=[DataRequired()], render_kw={'style': 'width: 50ch'})
+    description = CKEditorField('Project Description', validators=[DataRequired()])
+    img_file = StringField('Image File Path', validators=[DataRequired()], render_kw={'style': 'width: 50ch'})
+    alt_text = StringField('Alt Text', validators=[DataRequired()], render_kw={'style': 'width: 50ch'})
+    github_link = StringField('Github Link', validators=[DataRequired(), URL()], render_kw={'style': 'width: 50ch'})
+    submit = SubmitField(label='Add Project')
+
+
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(250), unique=True, nullable=False)
+    category = db.Column(db.String(250), nullable=False)
+    tag_name = db.Column(db.String(250), unique=True, nullable=False)
+    img_file = db.Column(db.String(250), nullable=False)
+    github_link = db.Column(db.String(250), nullable=False)
+    description = db.Column(db.String(2000), nullable=False)
+    alt_text = db.Column(db.String(250), nullable=False)
+
+
+with app.app_context():
+    db.create_all()
+
+
+@app.route('/')
+def home():
+    projects = Project.query.all()
+    return render_template("index.html", all_projects=projects)
+
+
+@app.route('/project', methods=['GET', 'POST'])
+def project():
+    if request.method == 'POST':
+        temp = request.form.get('description').replace("<p>", "")
+        new_project = Project(
+            title=request.form.get('title'),
+            category=request.form.get('category'),
+            tag_name=request.form.get('tag_name'),
+            img_file=request.form.get('img_file'),
+            github_link=request.form.get('github_link'),
+            description=temp.replace("</p>", ""),
+            alt_text=request.form.get('alt_text')
+        )
+        db.session.add(new_project)
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template('project.html', form=ProjectForm())
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+# index.html
+
+{% include "header.html" %}
+
+<!-- Masthead-->
+<header class="masthead">
+    <div class="container">
+        <div class="masthead-subheading">Welcome To My Portfolio!</div>
+        <div class="masthead-heading text-uppercase">It's Nice To Meet You</div>
+        <a class="btn btn-primary btn-xl text-uppercase" href="#services">Tell Me More</a>
+    </div>
+</header>
+<!-- Services-->
+<section class="page-section" id="services">
+    <div class="container">
+        <div class="text-center">
+            <h2 class="section-heading text-uppercase">Skills</h2>
+            <h3 class="section-subheading text-muted">These are some of my specialties I have developed throughout my career.</h3>
+        </div>
+        <div class="row text-center">
+            <div class="col-md-4">
+                <span class="fa-stack fa-4x">
+                    <i class="fas fa-circle fa-stack-2x text-primary"></i>
+                    <i class="fas fa-calculator fa-stack-1x fa-inverse"></i>
+                </span>
+                <h4 class="my-3">Systems & Test Engineering</h4>
+                <p class="text-muted">I spent 11 years as a failure analysis engineer at Seagate Technology, and the main focus of my work was to run testing on hard drive prototypes and report analysis results to multi-disciplinary teams.</p>
+            </div>
+            <div class="col-md-4">
+                <span class="fa-stack fa-4x">
+                    <i class="fas fa-circle fa-stack-2x text-primary"></i>
+                    <i class="fas fa-laptop fa-stack-1x fa-inverse"></i>
+                </span>
+                <h4 class="my-3">Software Programming</h4>
+                <p class="text-muted">I have spent the past few years obtaining skills in C, C++, Python, as well as some embedded software programming.  Other skills include websites, automation, game development, and data science.</p>
+            </div>
+            <div class="col-md-4">
+                <span class="fa-stack fa-4x">
+                    <i class="fas fa-circle fa-stack-2x text-primary"></i>
+                    <i class="fas fa-users fa-stack-1x fa-inverse"></i>
+                </span>
+                <h4 class="my-3">Customer Service</h4>
+                <p class="text-muted">When not at work, I volunteer as a cat adoption counselor which has given me experience in working with the public, thinking on my feet in fast-paced environments, and teamwork to achieve a common purpose.</p>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Portfolio Grid-->
+<section class="page-section bg-light" id="portfolio">
+    <div class="container">
+        <div class="text-center">
+            <h2 class="section-heading text-uppercase">Portfolio</h2>
+            <h3 class="section-subheading text-muted">A collection of programs I have written.</h3>
+        </div>
+        <div class="row">
+                <!-- Portfolio Items-->
+                {% for project in all_projects %}
+                <div class="col-lg-4 col-sm-6 mb-4">
+                <div class="portfolio-item">
+                    <a class="portfolio-link" data-bs-toggle="modal" href="#{{ project.tag_name }}">
+                        <div class="portfolio-hover">
+                            <div class="portfolio-hover-content"><i class="fas fa-plus fa-3x"></i></div>
+                        </div>
+                        <img class="img-fluid" src="{{ url_for('static', filename=project.img_file) }}" alt=project.alt_text/>
+                    </a>
+                    <div class="portfolio-caption">
+                        <div class="portfolio-caption-heading">{{ project.title }}</div>
+                        <div class="portfolio-caption-subheading text-muted">{{ project.category }}</div>
+                    </div>
+                </div>
+                </div>
+                {% endfor %}
+
+        </div>
+    </div>
+</section>
+<!-- About-->
+<section class="page-section" id="about">
+    <div class="container">
+        <div class="text-center">
+            <h2 class="section-heading text-uppercase">My Journey</h2>
+            <h3 class="section-subheading text-muted">Where I have been from college to the present day.</h3>
+        </div>
+        <ul class="timeline">
+            <li>
+                <div class="timeline-image"><img class="rounded-circle img-fluid" src="{{ url_for('static', filename='assets/img/about/1a.jpg') }}" alt="Breadboard with Multimeter" /></div>
+                <div class="timeline-panel">
+                    <div class="timeline-heading">
+                        <h4>2003-2008</h4>
+                        <h4 class="subheading">Obtained my B.S. in Electrical Engineering</h4>
+                    </div>
+                    <div class="timeline-body"><p class="text-muted">I obtained my bachelor's degree in Electrical Engineering at the University of Colorado Boulder with an emphasis in circuit analysis and design, and also took some courses in mathematics and history.</p></div>
+                </div>
+            </li>
+            <li class="timeline-inverted">
+                <div class="timeline-image"><img class="rounded-circle img-fluid" src="{{ url_for('static', filename='assets/img/about/2a.jpg') }}" alt="Printed Circuit Board" /></div>
+                <div class="timeline-panel">
+                    <div class="timeline-heading">
+                        <h4>2009-2011</h4>
+                        <h4 class="subheading">Obtained my M.S. in Electrical Engineering</h4>
+                    </div>
+                    <div class="timeline-body"><p class="text-muted">I continued on with my master's degree in Electrical Engineering at the University of Colorado Boulder.  It was a coursework master's with emphasis on circuit analys and design as well as applied mathematics.</p></div>
+                </div>
+            </li>
+            <li>
+                <div class="timeline-image"><img class="rounded-circle img-fluid" src="{{ url_for('static', filename='assets/img/about/3a.jpg') }}" alt="Hard Drive" /></div>
+                <div class="timeline-panel">
+                    <div class="timeline-heading">
+                        <h4>2012-2022</h4>
+                        <h4 class="subheading">Worked at Seagate Technology</h4>
+                    </div>
+                    <div class="timeline-body"><p class="text-muted">I worked as a failure analysis engineer at Seagate Technology for 11 years and obtained experience in systems, test, and software engineering as well as multidisciplinary teamwork.</p></div>
+                </div>
+            </li>
+            <li class="timeline-inverted">
+                <div class="timeline-image"><img class="rounded-circle img-fluid" src="{{ url_for('static', filename='assets/img/about/4a.jpg') }}" alt="Sleeping Cat" /></div>
+                <div class="timeline-panel">
+                    <div class="timeline-heading">
+                        <h4>2018-present</h4>
+                        <h4 class="subheading">Volunteering at Foothills Animal Shelter</h4>
+                    </div>
+                    <div class="timeline-body"><p class="text-muted">I volunteer as a cat adoption counselor at Foothills Animal Shelter and assist the public with finding their next cat.  I also support socializing and care of the cats current living at the shelter.</p></div>
+                </div>
+            </li>
+            <li class="timeline-inverted">
+                <div class="timeline-image">
+                    <h4>
+                        Be Part
+                        <br />
+                        Of My
+                        <br />
+                        Story!
+                    </h4>
+                </div>
+            </li>
+        </ul>
+    </div>
+</section>
+<!-- Team-->
+<section class="page-section bg-light" id="team">
+    <div class="container">
+        <div class="text-center">
+            <h2 class="section-heading text-uppercase">About Myself</h2>
+            <h3 class="section-subheading text-muted">Me in a nutshell.</h3>
+        </div>
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="team-member">
+                    <img class="mx-auto rounded-circle" src="{{ url_for('static', filename='assets/img/self.jpg') }}" alt="Picture of Chris" />
+                    <h4>Chris Reid</h4>
+                    <p class="text-muted">Electrical Engineer</p>
+                    <a class="btn btn-dark btn-social mx-2" href="https://www.facebook.com/reidcr" aria-label="Chris Reid Facebook Profile"><i class="fab fa-facebook-f"></i></a>
+                    <a class="btn btn-dark btn-social mx-2" href="https://www.linkedin.com/in/reidcr/" aria-label="Chris Reid LinkedIn Profile"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center"><p class="large text-muted">I help technology companies increase efficiency metrics by 150%.</p></div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact-->
+<section class="page-section" id="contact">
+    <div class="container">
+        <div class="text-center">
+            <h2 class="section-heading text-uppercase">Contact Me</h2>
+            <h3 class="section-subheading text-muted">Lorem ipsum dolor sit amet consectetur.</h3>
+        </div>
+        <!-- * * * * * * * * * * * * * * *-->
+        <!-- * * SB Forms Contact Form * *-->
+        <!-- * * * * * * * * * * * * * * *-->
+        <!-- This form is pre-integrated with SB Forms.-->
+        <!-- To make this form functional, sign up at-->
+        <!-- https://startbootstrap.com/solution/contact-forms-->
+        <!-- to get an API token!-->
+        <form id="contactForm" data-sb-form-api-token="API_TOKEN">
+            <div class="row align-items-stretch mb-5">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <!-- Name input-->
+                        <input class="form-control" id="name" type="text" placeholder="Your Name *" data-sb-validations="required" />
+                        <div class="invalid-feedback" data-sb-feedback="name:required">A name is required.</div>
+                    </div>
+                    <div class="form-group">
+                        <!-- Email address input-->
+                        <input class="form-control" id="email" type="email" placeholder="Your Email *" data-sb-validations="required,email" />
+                        <div class="invalid-feedback" data-sb-feedback="email:required">An email is required.</div>
+                        <div class="invalid-feedback" data-sb-feedback="email:email">Email is not valid.</div>
+                    </div>
+                    <div class="form-group mb-md-0">
+                        <!-- Phone number input-->
+                        <input class="form-control" id="phone" type="tel" placeholder="Your Phone *" data-sb-validations="required" />
+                        <div class="invalid-feedback" data-sb-feedback="phone:required">A phone number is required.</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group form-group-textarea mb-md-0">
+                        <!-- Message input-->
+                        <textarea class="form-control" id="message" placeholder="Your Message *" data-sb-validations="required"></textarea>
+                        <div class="invalid-feedback" data-sb-feedback="message:required">A message is required.</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Submit success message-->
+            <!---->
+            <!-- This is what your users will see when the form-->
+            <!-- has successfully submitted-->
+            <div class="d-none" id="submitSuccessMessage">
+                <div class="text-center text-white mb-3">
+                    <div class="fw-bolder">Form submission successful!</div>
+                    To activate this form, sign up at
+                    <br />
+                    <a href="https://startbootstrap.com/solution/contact-forms">https://startbootstrap.com/solution/contact-forms</a>
+                </div>
+            </div>
+            <!-- Submit error message-->
+            <!---->
+            <!-- This is what your users will see when there is-->
+            <!-- an error submitting the form-->
+            <div class="d-none" id="submitErrorMessage"><div class="text-center text-danger mb-3">Error sending message!</div></div>
+            <!-- Submit Button-->
+            <div class="text-center"><button class="btn btn-primary btn-xl text-uppercase disabled" id="submitButton" type="submit">Send Message</button></div>
+        </form>
+    </div>
+</section>
+{% include "footer.html" %}
+<!-- Portfolio Modals-->
+<!-- Portfolio item modal popups-->
+{% for project in all_projects %}
+<div class="portfolio-modal modal fade" id="{{ project.tag_name }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="close-modal" data-bs-dismiss="modal"><img src="{{ url_for('static', filename='assets/img/close-icon.svg') }}" alt="Close modal" /></div>
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="modal-body">
+                            <!-- Project details-->
+                            <h2 class="text-uppercase">{{ project.title }}</h2>
+                            <p class="item-intro text-muted">{{ project.description }}</p>
+                            <img class="img-fluid d-block mx-auto" src="{{ url_for('static', filename=project.img_file) }}" alt="{{project.alt_text}}"/>
+                            <a href="{{ project.github_link }}">Link to Project on Github</a>
+                            <br>
+                            <br>
+                            <button class="btn btn-primary btn-xl text-uppercase" data-bs-dismiss="modal" type="button">
+                                <i class="fas fa-xmark me-1"></i>
+                                Close Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Bootstrap core JS-->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Core theme JS-->
+<script src="js/scripts.js"></script>
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+<!-- * *                               SB Forms JS                               * *-->
+<!-- * * Activate your form at https://startbootstrap.com/solution/contact-forms * *-->
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+<script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
+
+# header.html
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>Chris's Portfolio</title>
+        <!-- Favicon-->
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/favicon.ico') }}" />
+        <!-- Font Awesome icons (free version)-->
+        <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+        <!-- Google fonts-->
+        <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css" />
+        <link href="https://fonts.googleapis.com/css?family=Roboto+Slab:400,100,300,700" rel="stylesheet" type="text/css" />
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" />
+    </head>
+    <body id="page-top">
+        <!-- Navigation-->
+        <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNav">
+            <div class="container">
+                <a class="navbar-brand" href="https://startbootstrap.com/"><img src="{{ url_for('static', filename='assets/img/navbar-logo.svg') }}" alt="..." /></a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                    Menu
+                    <i class="fas fa-bars ms-1"></i>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarResponsive">
+                    <ul class="navbar-nav text-uppercase ms-auto py-4 py-lg-0">
+                        <li class="nav-item"><a class="nav-link" href="#services">Skills</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#portfolio">Portfolio</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#about">My Journey</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#team">Intro</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </body>
+</html>
+
+# footer.html
+
+<!-- Footer-->
+<footer class="footer py-4">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-4 text-lg-start">Copyright &copy; Chris's Website 2023</div>
+            <div class="col-lg-4 text-lg-end">
+                <a class="link-dark text-decoration-none me-3" href="#!">Privacy Policy</a>
+                <a class="link-dark text-decoration-none" href="#!">Terms of Use</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+# project.html
+
+{% import "bootstrap/wtf.html" as wtf %}
+
+<div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+        {{ ckeditor.load() }}
+        {{ ckeditor.config(name='body') }}
+        {{ wtf.quick_form(form, novalidate='True', button_map={"submit": "primary"}) }}
+      </div>
+    </div>
+</div>
